@@ -1,0 +1,11 @@
+[Unit]
+Description=Shower Booking Daily Run
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/shower
+ExecStart=/usr/bin/env python3 scripts/book-shower.py
+StandardOutput=journal
+StandardError=journal

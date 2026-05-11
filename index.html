@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>浴室入口</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
+</head>
+
+<body>
+  <div class="page">
+    <section id="login-view" class="login-shell">
+      <div class="panel login-card">
+        <h1>登录</h1>
+        <p class="lead">输入账号</p>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="code">账号</label>
+            <input id="code" name="code" type="text" inputmode="numeric" autocomplete="username">
+          </div>
+
+          <div class="actions">
+            <button class="primary" id="submit-btn" type="submit">登录</button>
+          </div>
+        </form>
+
+        <div id="login-status" class="status info"></div>
+      </div>
+    </section>
+
+    <section id="rooms-view" class="hidden">
+      <div class="panel rooms-panel">
+        <div class="rooms-head">
+          <div>
+            <h2>浴室列表</h2>
+          </div>
+
+          <div class="toolbar">
+            <button class="secondary" id="time-format-btn" type="button">24h制</button>
+            <button class="secondary" id="refresh-btn" type="button">刷新列表</button>
+            <button class="secondary" id="logout-btn" type="button">退出登录</button>
+          </div>
+        </div>
+
+        <div id="rooms-status" class="status info"></div>
+
+        <div id="mobile-tabs" class="mobile-tabs"></div>
+
+        <div id="rooms-grid" class="rooms-grid">
+          <section class="surface rooms-surface">
+            <div class="surface-head">
+              <h2>浴室列表</h2>
+              <div id="room-count" class="pill">0 个浴室</div>
+            </div>
+            <div id="room-list" class="room-list"></div>
+          </section>
+
+          <section class="surface slots-surface">
+            <div class="surface-head">
+              <div>
+                <h2>可预约项</h2>
+                <div id="slot-note" class="section-note">请选择一个浴室。</div>
+              </div>
+              <div id="slot-count" class="pill">0 个时段</div>
+            </div>
+            <div id="slot-list" class="slot-list"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+
+</html>

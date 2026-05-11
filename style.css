@@ -1,0 +1,440 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  --bg: #f3f7ff;
+  --panel: #ffffff;
+  --panel-soft: #f8fbff;
+  --border: #d8e1ef;
+  --text: #172235;
+  --muted: #61728a;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --success: #15803d;
+  --error: #b91c1c;
+  --info: #1e40af;
+  --shadow: 0 18px 40px rgba(21, 41, 82, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 100%);
+  color: var(--text);
+  font: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.page {
+  min-height: 100vh;
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+.login-shell {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.login-card {
+  width: min(100%, 420px);
+  padding: 28px 24px;
+}
+
+h1,
+h2 {
+  margin: 0 0 10px;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 30px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+.lead {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #c8d3e5;
+  border-radius: 14px;
+  color: var(--text);
+  background: #fff;
+}
+
+input:focus {
+  outline: none;
+  border-color: #77a8ff;
+  box-shadow: 0 0 0 4px rgba(119, 168, 255, 0.18);
+}
+
+.actions,
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+}
+
+.secondary {
+  background: #edf3ff;
+  color: #214491;
+}
+
+.cancel {
+  background: #fee2e2;
+  color: #1d4ed8;
+}
+
+.swap {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status {
+  min-height: 24px;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status.info {
+  color: var(--info);
+}
+
+.status.success {
+  color: var(--success);
+}
+
+.status.error {
+  color: var(--error);
+}
+
+.rooms-panel {
+  padding: 24px;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 248px) minmax(320px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.mobile-tabs {
+  display: none;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.mobile-tabs .tab-btn {
+  width: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+}
+
+.surface {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel-soft);
+}
+
+.surface-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rooms-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #edf3ff;
+  color: #214491;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.room-list {
+  display: grid;
+  gap: 12px;
+}
+
+.slot-list {
+  display: grid;
+  gap: 12px;
+}
+
+.room-card {
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid #d6e1f0;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--text);
+}
+
+.room-card.active {
+  border-color: rgba(37, 99, 235, 0.42);
+  background: #eff5ff;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+}
+
+.room-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.room-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.slot-card {
+  padding: 16px;
+  border: 1px solid #d6e1f0;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.slot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.slot-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.slot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f6fb;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.meta.success {
+  background: #e8f7ee;
+  color: var(--success);
+}
+
+.meta.warning {
+  background: #fff4e8;
+  color: #b45309;
+}
+
+.section-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.empty {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed #c9d4e7;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.mono {
+  font-family: Consolas, Monaco, monospace;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: 100%;
+    padding: 0;
+  }
+
+  .login-card,
+  .rooms-panel {
+    padding: 20px 16px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  .actions,
+  .rooms-head {
+    flex-direction: column;
+  }
+
+  .toolbar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .rooms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .slot-top {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .mobile-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+
+  .rooms-surface {
+    display: none;
+  }
+
+  .room-card span {
+    display: none;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .mobile-tabs .tab-btn {
+    width: auto;
+  }
+
+  .slot-actions button {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .toolbar button {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  #rooms-view {
+    margin: 0;
+  }
+
+  .rooms-panel {
+    border-radius: 0;
+    box-shadow: none;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    min-height: 100vh;
+  }
+}
