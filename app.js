@@ -1,5 +1,5 @@
 const BASE_URL = 'http://yushi.tjnu.edu.cn:61004/brmcsf/';
-const LOGIN_CODE_PREFIX = '25300901';
+const LOGIN_CODE_PREFIX = '';
 const LOGIN_PASSWORD = 'ZXCzxc123!@#';
 const SESSION_STORAGE_KEY = 'shower-auth-session';
 const LAST_CODE_STORAGE_KEY = 'shower-last-code';
@@ -8,20 +8,15 @@ const DEFAULT_ROOM_ID = '31';
 const BOOKED_VIEW_ID = '__booked__';
 const PASSWORD_MD5 = 'f1219d2303d63da395244e78b5d5a74d';
 const SWAP_ACCOUNTS = [
-  { code: '2530090124', loginid: '63388' },
-  { code: '2530090161', loginid: '66520' },
-  { code: '2530090177', loginid: '65160' },
-  { code: '2530090183', loginid: '60693' },
-  { code: '2530090187', loginid: '59263' },
-  { code: '2530090188', loginid: '64438' },
+  { code: '2430090187', loginid: '52561' },
 ];
 const SWAP_SLOT_MAP = {
-  '1204': '2530090124',
-  '1205': '2530090161',
-  '1206': '2530090177',
-  '1207': '2530090183',
-  '1208': '2530090187',
-  '1209': '2530090188',
+  '1204': '2430090187',
+  '1205': '2430090187',
+  '1206': '2430090187',
+  '1207': '2430090187',
+  '1208': '2430090187',
+  '1209': '2430090187',
 };
 
 const state = {
