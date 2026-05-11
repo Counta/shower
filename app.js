@@ -7,17 +7,46 @@ const TIME_FORMAT_STORAGE_KEY_PREFIX = 'shower-time-format:';
 const DEFAULT_ROOM_ID = '31';
 const BOOKED_VIEW_ID = '__booked__';
 const PASSWORD_MD5 = 'f1219d2303d63da395244e78b5d5a74d';
-const SWAP_ACCOUNTS = [
-  { code: '2430090187', loginid: '52561' },
-];
-const SWAP_SLOT_MAP = {
-  '1204': '2430090187',
-  '1205': '2430090187',
-  '1206': '2430090187',
-  '1207': '2430090187',
-  '1208': '2430090187',
-  '1209': '2430090187',
-};
+const ACCOUNTS_CONF_URL = 'conf/accounts.env';
+
+let SWAP_ACCOUNTS = [];
+let SWAP_SLOT_MAP = {};
+
+async function loadAccountsConf() {
+  try {
+    const resp = await fetch(ACCOUNTS_CONF_URL);
+    if (!resp.ok) return;
+    const text = await resp.text();
+    const lines = text.split('\n');
+    const loginIds = {};
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) continue;
+      const key = trimmed.substring(0, eqIdx).trim();
+      const val = trimmed.substring(eqIdx + 1).trim();
+      if (key.startsWith('LOGINID_')) {
+        const code = key.substring('LOGINID_'.length);
+        loginIds[code] = val;
+      }
+    }
+
+    SWAP_ACCOUNTS = Object.entries(loginIds).map(([code, loginid]) => ({ code, loginid }));
+
+    const slotIdLines = lines.find((l) => l.trim().startsWith('SLOT_IDS='));
+    if (slotIdLines) {
+      const slotIds = slotIdLines.split('=', 2)[1].split(',').map((s) => s.trim());
+      SWAP_SLOT_MAP = {};
+      for (let i = 0; i < slotIds.length; i++) {
+        SWAP_SLOT_MAP[slotIds[i]] = SWAP_ACCOUNTS[i % SWAP_ACCOUNTS.length].code;
+      }
+    }
+  } catch (e) {
+    // silent fail, keep defaults
+  }
+}
 
 const state = {
   session: null,
@@ -1035,15 +1064,17 @@ restoreLastCode();
 renderRooms();
 renderSlots();
 
-const initialSession = readSession();
+loadAccountsConf().then(() => {
+  const initialSession = readSession();
 
-if (initialSession) {
-  setSession(initialSession);
-  refreshRooms('正在恢复浴室列表和可预约项...');
-} else {
-  setSession(null);
-  setLoginStatus('请输入账号和密码登录。', 'info');
-}
+  if (initialSession) {
+    setSession(initialSession);
+    refreshRooms('正在恢复浴室列表和可预约项...');
+  } else {
+    setSession(null);
+    setLoginStatus('请输入账号和密码登录。', 'info');
+  }
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
