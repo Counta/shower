@@ -11,15 +11,19 @@ const ACCOUNTS_CONF_URL = 'conf/accounts.env';
 
 let SWAP_ACCOUNTS = [];
 let SWAP_SLOT_MAP = {};
+let swapConfigError = '';
 
 async function loadAccountsConf() {
   try {
     const resp = await fetch(ACCOUNTS_CONF_URL);
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      throw new Error(`交换配置读取失败（HTTP ${resp.status}）`);
+    }
     const text = await resp.text();
     const lines = text.split('\n');
     const loginIds = {};
     let accountCodes = [];
+    let slotIds = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -30,6 +34,9 @@ async function loadAccountsConf() {
       const val = trimmed.substring(eqIdx + 1).trim();
       if (key === 'ACCOUNTS') {
         accountCodes = val.split(',').map((item) => item.trim()).filter(Boolean);
+      }
+      if (key === 'SLOT_IDS') {
+        slotIds = val.split(',').map((item) => item.trim()).filter(Boolean);
       }
       if (key.startsWith('LOGINID_')) {
         const code = key.substring('LOGINID_'.length);
@@ -42,19 +49,22 @@ async function loadAccountsConf() {
       .map((code) => ({ code, loginid: loginIds[code] }));
 
     if (SWAP_ACCOUNTS.length === 0) {
-      SWAP_ACCOUNTS = Object.entries(loginIds).map(([code, loginid]) => ({ code, loginid }));
+      throw new Error('交换配置无有效账号');
     }
 
-    const slotIdLines = lines.find((l) => l.trim().startsWith('SLOT_IDS='));
-    if (slotIdLines && SWAP_ACCOUNTS.length > 0) {
-      const slotIds = slotIdLines.split('=', 2)[1].split(',').map((s) => s.trim());
-      SWAP_SLOT_MAP = {};
-      for (let i = 0; i < slotIds.length; i++) {
-        SWAP_SLOT_MAP[slotIds[i]] = SWAP_ACCOUNTS[i % SWAP_ACCOUNTS.length].code;
-      }
+    if (slotIds.length === 0) {
+      throw new Error('交换配置无有效时段');
+    }
+
+    SWAP_SLOT_MAP = {};
+    for (let i = 0; i < slotIds.length; i++) {
+      SWAP_SLOT_MAP[slotIds[i]] = SWAP_ACCOUNTS[i % SWAP_ACCOUNTS.length].code;
     }
   } catch (e) {
-    // silent fail, keep defaults
+    SWAP_ACCOUNTS = [];
+    SWAP_SLOT_MAP = {};
+    swapConfigError = e instanceof Error ? e.message : '交换配置读取失败';
+    throw e;
   }
 }
 
@@ -509,6 +519,7 @@ function renderSlots() {
       const orderStatusMeta = getOrderStatusMeta(order);
       const loading = state.bookingSlotId === slotId;
       const buttonLabel = loading ? '处理中...' : '取消预约';
+      const canSwap = isSwapSlot(slotId);
 
       return `
         <article class="slot-card">
@@ -523,6 +534,7 @@ function renderSlots() {
           </div>
           <div class="slot-actions">
             <button class="cancel" type="button" data-slot-id="${escapeHtml(slotId)}"${loading ? ' disabled' : ''}>${buttonLabel}</button>
+            ${canSwap ? `<button class="swap" type="button" data-swap-slot-id="${escapeHtml(slotId)}"${loading ? ' disabled' : ''}>尝试交换</button>` : ''}
           </div>
         </article>
       `;
@@ -551,7 +563,7 @@ function renderSlots() {
     const buttonDisabled = (alreadyBooked || bookable) && !loading ? '' : ' disabled';
     const buttonLabel = loading ? '处理中...' : (alreadyBooked ? '取消预约' : '预约');
     const buttonClass = alreadyBooked ? 'cancel' : 'primary';
-    const canSwap = isSwapSlot(slotId) && !alreadyBooked;
+    const canSwap = isSwapSlot(slotId);
 
     return `
       <article class="slot-card">
@@ -1074,17 +1086,21 @@ restoreLastCode();
 renderRooms();
 renderSlots();
 
-loadAccountsConf().then(() => {
-  const initialSession = readSession();
+loadAccountsConf()
+  .catch(() => {
+    setRoomsStatus(swapConfigError || '交换配置读取失败。', 'error');
+  })
+  .finally(() => {
+    const initialSession = readSession();
 
-  if (initialSession) {
-    setSession(initialSession);
-    refreshRooms('正在恢复浴室列表和可预约项...');
-  } else {
-    setSession(null);
-    setLoginStatus('请输入账号和密码登录。', 'info');
-  }
-});
+    if (initialSession) {
+      setSession(initialSession);
+      refreshRooms('正在恢复浴室列表和可预约项...');
+    } else {
+      setSession(null);
+      setLoginStatus('请输入账号和密码登录。', 'info');
+    }
+  });
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
