@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shower-v1';
+const CACHE_NAME = 'shower-v2';
 const ASSETS = [
   './',
   './index.html',

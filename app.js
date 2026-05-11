@@ -19,6 +19,7 @@ async function loadAccountsConf() {
     const text = await resp.text();
     const lines = text.split('\n');
     const loginIds = {};
+    let accountCodes = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -27,16 +28,25 @@ async function loadAccountsConf() {
       if (eqIdx === -1) continue;
       const key = trimmed.substring(0, eqIdx).trim();
       const val = trimmed.substring(eqIdx + 1).trim();
+      if (key === 'ACCOUNTS') {
+        accountCodes = val.split(',').map((item) => item.trim()).filter(Boolean);
+      }
       if (key.startsWith('LOGINID_')) {
         const code = key.substring('LOGINID_'.length);
         loginIds[code] = val;
       }
     }
 
-    SWAP_ACCOUNTS = Object.entries(loginIds).map(([code, loginid]) => ({ code, loginid }));
+    SWAP_ACCOUNTS = accountCodes
+      .filter((code) => loginIds[code])
+      .map((code) => ({ code, loginid: loginIds[code] }));
+
+    if (SWAP_ACCOUNTS.length === 0) {
+      SWAP_ACCOUNTS = Object.entries(loginIds).map(([code, loginid]) => ({ code, loginid }));
+    }
 
     const slotIdLines = lines.find((l) => l.trim().startsWith('SLOT_IDS='));
-    if (slotIdLines) {
+    if (slotIdLines && SWAP_ACCOUNTS.length > 0) {
       const slotIds = slotIdLines.split('=', 2)[1].split(',').map((s) => s.trim());
       SWAP_SLOT_MAP = {};
       for (let i = 0; i < slotIds.length; i++) {
@@ -872,7 +882,7 @@ async function handleSwap(slotId) {
 
   state.bookingSlotId = slotId;
   renderSlots();
-  setRoomsStatus(`正在登录 ${targetCode} 取消预约...`, 'info');
+  setRoomsStatus('正在准备交换...', 'info');
 
   try {
     const targetSession = await loginAsAccount(targetCode);
@@ -880,21 +890,21 @@ async function handleSwap(slotId) {
     const orderToCancel = targetOrders.find((o) => toId(o && o.bookStatusId) === slotId);
 
     if (!orderToCancel) {
-      throw new Error(`账号 ${targetCode} 没有预约此时段。`);
+      throw new Error('交换目标当前没有预约此时段。');
     }
 
     const cancelSucceed = await cancelOrderAs(targetSession, toId(orderToCancel.id));
 
     if (cancelSucceed !== 'Y') {
-      throw new Error(`账号 ${targetCode} 取消预约失败。`);
+      throw new Error('交换目标取消预约失败。');
     }
 
-    setRoomsStatus(`已取消 ${targetCode} 的预约，正在为你预约...`, 'info');
+    setRoomsStatus('已释放原预约，正在为你预约...', 'info');
 
     const bookSucceed = await bookSlotAs(state.session, slotId);
     const myResult = getBookingResultMessage(bookSucceed);
 
-    setRoomsStatus(`正在帮 ${targetCode} 重新预约...`, 'info');
+    setRoomsStatus('正在尝试为原账号重新预约...', 'info');
 
     let targetRetryMsg = '';
     try {
