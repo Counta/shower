@@ -1,0 +1,34 @@
+# Push to main → SSH into server and git pull.
+# GitHub → Settings → Secrets and variables → Actions, add:
+#   SSH_HOST          server public IP
+#   SSH_USER          e.g. deploy
+#   SSH_PRIVATE_KEY   private key matching server's ~/.ssh/authorized_keys
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  git-pull:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trust server host key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p 22 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pull on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /var/www/profilequery
+            git config --global --add safe.directory /var/www/profilequery || true
+            git pull --ff-only origin main
