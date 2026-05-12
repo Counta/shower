@@ -1,5 +1,7 @@
 const BASE_URL = 'http://yushi.tjnu.edu.cn:61004/brmcsf/';
-const LOGIN_CODE_PREFIX = '';
+const LOGIN_CODE_PREFIX = '25300901';
+/** 完整输入该账号时不拼接 LOGIN_CODE_PREFIX */
+const LOGIN_CODE_PREFIX_EXCEPTION = '2430090187';
 const LOGIN_PASSWORD = 'ZXCzxc123!@#';
 const SESSION_STORAGE_KEY = 'shower-auth-session';
 const LAST_CODE_STORAGE_KEY = 'shower-last-code';
@@ -233,6 +235,10 @@ function resolveLoginCode(rawValue) {
 
   if (!value) {
     return '';
+  }
+
+  if (value === LOGIN_CODE_PREFIX_EXCEPTION) {
+    return value;
   }
 
   return `${LOGIN_CODE_PREFIX}${value}`;
