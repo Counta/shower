@@ -8,13 +8,31 @@ const DEFAULT_ROOM_ID = '31';
 const BOOKED_VIEW_ID = '__booked__';
 const PASSWORD_MD5 = 'f1219d2303d63da395244e78b5d5a74d';
 const ACCOUNTS_CONF_URL = 'conf/accounts.env';
+const FALLBACK_SWAP_ACCOUNTS = [
+  { code: '2430090187', loginid: '52561' },
+];
+const FALLBACK_SWAP_SLOT_IDS = ['1204', '1205', '1206', '1207', '1208', '1209'];
 
 let SWAP_ACCOUNTS = [];
 let SWAP_SLOT_MAP = {};
 let swapConfigError = '';
 
+function applySwapConfig(accounts, slotIds) {
+  SWAP_ACCOUNTS = accounts.map((account) => ({ code: account.code, loginid: account.loginid }));
+  SWAP_SLOT_MAP = {};
+
+  for (let index = 0; index < slotIds.length; index += 1) {
+    SWAP_SLOT_MAP[slotIds[index]] = SWAP_ACCOUNTS[index % SWAP_ACCOUNTS.length].code;
+  }
+}
+
 async function loadAccountsConf() {
   try {
+    if (window.location.protocol === 'file:') {
+      applySwapConfig(FALLBACK_SWAP_ACCOUNTS, FALLBACK_SWAP_SLOT_IDS);
+      return;
+    }
+
     const resp = await fetch(ACCOUNTS_CONF_URL);
     if (!resp.ok) {
       throw new Error(`交换配置读取失败（HTTP ${resp.status}）`);
@@ -56,10 +74,7 @@ async function loadAccountsConf() {
       throw new Error('交换配置无有效时段');
     }
 
-    SWAP_SLOT_MAP = {};
-    for (let i = 0; i < slotIds.length; i++) {
-      SWAP_SLOT_MAP[slotIds[i]] = SWAP_ACCOUNTS[i % SWAP_ACCOUNTS.length].code;
-    }
+    applySwapConfig(SWAP_ACCOUNTS, slotIds);
   } catch (e) {
     SWAP_ACCOUNTS = [];
     SWAP_SLOT_MAP = {};
@@ -102,7 +117,7 @@ function setLoginStatus(message, type) {
 
 function setRoomsStatus(message, type) {
   roomsStatusEl.textContent = message;
-  roomsStatusEl.className = `status ${type}`;
+  roomsStatusEl.className = `rooms-toast status ${type}`;
 }
 
 function readSession() {
@@ -173,7 +188,9 @@ function updateTimeFormatButton() {
     return;
   }
 
-  timeFormatBtn.textContent = state.timeFormat === '12h' ? '12h制' : '24h制';
+  const is12 = state.timeFormat === '12h';
+  timeFormatBtn.setAttribute('aria-label', is12 ? '当前12小时制，切换为24小时制' : '当前24小时制，切换为12小时制');
+  timeFormatBtn.setAttribute('title', is12 ? '当前12小时制，点击改为24小时制' : '当前24小时制，点击改为12小时制');
 }
 
 function formatSingleTime(timeText) {
@@ -784,6 +801,22 @@ async function handleBook(slotId) {
       const result = getCancelResultMessage(succeed);
       await Promise.all([loadOrders(), loadSlots(state.selectedRoomId)]);
       setRoomsStatus(result.text, result.type);
+
+      if (succeed === 'Y' && isSwapSlot(slotId)) {
+        const reserveAccount = SWAP_ACCOUNTS.find((a) => a.code === SWAP_SLOT_MAP[slotId]);
+        if (reserveAccount) {
+          setRoomsStatus('已取消，正在为固定账号重新预约...', 'info');
+          try {
+            const reserveSession = await loginAsAccount(reserveAccount.code);
+            const bookSucceed = await bookSlotAs(reserveSession, slotId);
+            const bookMsg = bookSucceed === 'Y' ? '固定账号已重新预约成功。' : '固定账号重新预约未成功。';
+            await Promise.all([loadOrders(), loadSlots(state.selectedRoomId)]);
+            setRoomsStatus(result.text + bookMsg, bookSucceed === 'Y' ? 'success' : 'error');
+          } catch (swapErr) {
+            setRoomsStatus(result.text + '固定账号重新预约失败：' + swapErr.message, 'error');
+          }
+        }
+      }
     } catch (error) {
       state.bookingSlotId = '';
       renderSlots();
@@ -1015,6 +1048,9 @@ async function handleLogin(event) {
 
 function handleLogout(message) {
   clearSessionStorage();
+  if (roomsStatusEl) {
+    roomsStatusEl.textContent = '';
+  }
   setSession(null);
   setLoginStatus(message || '已退出登录。', 'info');
   codeInput.focus();

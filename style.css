@@ -12,7 +12,14 @@
   --success: #15803d;
   --error: #b91c1c;
   --info: #1e40af;
-  --shadow: 0 18px 40px rgba(21, 41, 82, 0.1);
+  --shadow: 0 8px 24px rgba(21, 41, 82, 0.08);
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
 }
 
 * {
@@ -25,6 +32,8 @@ body {
   background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 100%);
   color: var(--text);
   font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 button,
@@ -38,13 +47,13 @@ input {
 
 .page {
   min-height: 100vh;
-  width: min(100%, 1040px);
+  width: min(100%, 960px);
   margin: 0 auto;
-  padding: 24px 16px 32px;
+  padding: var(--space-3) 12px var(--space-4);
 }
 
 .login-shell {
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - 36px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,52 +62,45 @@ input {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
 
 .login-card {
-  width: min(100%, 420px);
-  padding: 28px 24px;
+  width: min(100%, 360px);
+  padding: var(--space-4) var(--space-3);
 }
 
 h1,
 h2 {
-  margin: 0 0 10px;
-  line-height: 1.2;
+  margin: 0 0 var(--space-2);
+  line-height: 1.25;
 }
 
 h1 {
-  font-size: 30px;
+  font-size: 22px;
 }
 
 h2 {
-  font-size: 24px;
-}
-
-.lead {
-  margin: 0 0 22px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 18px;
 }
 
 .field {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-2);
 }
 
 label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 700;
+  margin-bottom: var(--space-1);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 input {
   width: 100%;
-  padding: 13px 14px;
+  padding: 9px 11px;
   border: 1px solid #c8d3e5;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   color: var(--text);
   background: #fff;
 }
@@ -106,33 +108,37 @@ input {
 input:focus {
   outline: none;
   border-color: #77a8ff;
-  box-shadow: 0 0 0 4px rgba(119, 168, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(119, 168, 255, 0.16);
 }
 
 .actions,
 .toolbar {
   display: flex;
-  gap: 12px;
+  gap: var(--space-2);
   flex-wrap: wrap;
+}
+
+.actions {
+  justify-content: center;
 }
 
 button {
   border: 0;
-  border-radius: 14px;
-  padding: 12px 18px;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition: opacity 0.15s ease, background 0.15s ease;
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-1px);
+  opacity: 0.92;
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
 .primary {
@@ -143,6 +149,23 @@ button:disabled {
 .secondary {
   background: #edf3ff;
   color: #214491;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.icon-btn .icon-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  pointer-events: none;
 }
 
 .cancel {
@@ -156,10 +179,10 @@ button:disabled {
 }
 
 .status {
-  min-height: 24px;
-  margin-top: 16px;
-  font-size: 14px;
-  font-weight: 700;
+  min-height: 20px;
+  margin-top: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .status.info {
@@ -174,22 +197,52 @@ button:disabled {
   color: var(--error);
 }
 
+.rooms-toast {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  z-index: 2000;
+  max-width: min(360px, calc(100vw - 24px));
+  margin: 0;
+  padding: 10px 12px;
+  min-height: 0;
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 36px rgba(21, 41, 82, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.rooms-toast:empty {
+  display: none;
+}
+
 .rooms-panel {
-  padding: 24px;
+  padding: var(--space-3) var(--space-3);
+}
+
+.rooms-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 248px) minmax(320px, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(180px, 220px) minmax(280px, 1fr);
+  gap: var(--space-3);
   align-items: start;
 }
 
 .mobile-tabs {
   display: none;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -207,57 +260,73 @@ button:disabled {
 }
 
 .surface {
-  padding: 20px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--panel-soft);
 }
 
 .surface-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.surface-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.surface-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 2px;
 }
 
 .rooms-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 6px 10px;
+  min-height: 26px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: #edf3ff;
   color: #214491;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .room-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
 .slot-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
 .room-card {
   width: 100%;
   text-align: left;
-  padding: 16px;
+  padding: var(--space-2) 11px;
   border: 1px solid #d6e1f0;
-  border-radius: 18px;
+  border-radius: var(--radius-md);
   background: #fff;
   color: var(--text);
 }
@@ -270,21 +339,21 @@ button:disabled {
 
 .room-card strong {
   display: block;
-  margin-bottom: 6px;
-  font-size: 15px;
+  margin-bottom: 2px;
+  font-size: 14px;
 }
 
 .room-card span {
   display: block;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .slot-card {
-  padding: 16px;
+  padding: var(--space-2) 11px;
   border: 1px solid #d6e1f0;
-  border-radius: 18px;
+  border-radius: var(--radius-md);
   background: #fff;
 }
 
@@ -292,37 +361,37 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
 .slot-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .slot-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-1);
 }
 
 .slot-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .meta {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 5px 10px;
+  min-height: 24px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: #f3f6fb;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -338,18 +407,18 @@ button:disabled {
 
 .section-note {
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .empty {
-  padding: 18px;
-  border-radius: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   border: 1px dashed #c9d4e7;
   background: var(--panel-soft);
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .mono {
@@ -358,6 +427,15 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
   .page {
     width: 100%;
     padding: 0;
@@ -365,22 +443,100 @@ button:disabled {
 
   .login-card,
   .rooms-panel {
-    padding: 20px 16px;
+    padding: var(--space-3) 12px;
   }
 
   h1 {
-    font-size: 26px;
+    font-size: 24px;
+  }
+
+  label {
+    font-size: 14px;
+  }
+
+  input {
+    font-size: 16px;
+    padding: 11px 12px;
+  }
+
+  button {
+    font-size: 14px;
+  }
+
+  .status {
+    font-size: 14px;
+  }
+
+  .rooms-toast {
+    font-size: 14px;
+    padding: 12px 14px;
+    max-width: min(400px, calc(100vw - 20px));
+  }
+
+  .rooms-title {
+    font-size: 19px;
+    text-align: center;
+  }
+
+  .surface-label {
+    font-size: 12px;
+  }
+
+  .pill {
+    font-size: 12px;
+    min-height: 28px;
+    padding: 5px 10px;
+  }
+
+  .meta {
+    font-size: 12px;
+    min-height: 26px;
+    padding: 4px 10px;
+  }
+
+  .section-note {
+    font-size: 14px;
+  }
+
+  .room-card strong {
+    font-size: 15px;
+  }
+
+  .slot-title {
+    font-size: 15px;
+  }
+
+  .empty {
+    font-size: 14px;
+  }
+
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .icon-btn .icon-svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .mobile-tabs .tab-btn {
+    width: auto;
+    font-size: 14px;
+    padding: 10px 14px;
   }
 
   .actions,
   .rooms-head {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .toolbar {
     flex-direction: row;
     flex-wrap: nowrap;
     width: 100%;
+    justify-content: flex-end;
     overflow-x: auto;
   }
 
@@ -410,8 +566,11 @@ button:disabled {
     width: 100%;
   }
 
-  .mobile-tabs .tab-btn {
-    width: auto;
+  .actions .icon-btn {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    align-self: center;
   }
 
   .slot-actions button {
@@ -423,6 +582,13 @@ button:disabled {
     width: auto;
     flex: 0 0 auto;
     white-space: nowrap;
+  }
+
+  .toolbar .icon-btn {
+    width: auto;
+    min-width: 56px;
+    padding: 0 14px;
+    height: 44px;
   }
 
   #rooms-view {
