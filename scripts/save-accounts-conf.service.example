@@ -1,0 +1,22 @@
+# 示例：save_accounts_conf_server（合并写入 conf，监听本机）
+# 复制到 /etc/systemd/system/save-accounts-conf.service 后修改路径与用户，再 daemon-reload / enable --now
+
+[Unit]
+Description=Shower accounts.env merge API (behind Nginx)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SHOWER_ACCOUNTS_ENV_PATH=/var/www/profilequery/conf/accounts.env
+Environment=SHOWER_BIND=127.0.0.1:8765
+# 仅调试用：Environment=SHOWER_REQUIRE_INTERNAL_HEADER=0
+# 若需整文件 Bearer 保存：再设 Environment=SHOWER_CONF_WRITE_TOKEN=...
+WorkingDirectory=/var/www/profilequery
+ExecStart=/usr/bin/env python3 /var/www/profilequery/scripts/save_accounts_conf_server.py
+Restart=on-failure
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

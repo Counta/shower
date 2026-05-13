@@ -19,6 +19,91 @@ let SWAP_ACCOUNTS = [];
 let SWAP_SLOT_MAP = {};
 let swapConfigError = '';
 
+function getDefaultAccountsEditor() {
+  return {
+    accountPrefix: '25300901',
+    passwordMd5: PASSWORD_MD5,
+    baseUrl: BASE_URL.replace(/\/$/, ''),
+    bathroomId: DEFAULT_ROOM_ID,
+    slotIds: [...FALLBACK_SWAP_SLOT_IDS],
+    accounts: FALLBACK_SWAP_ACCOUNTS.map((a) => ({ code: a.code, loginid: String(a.loginid) })),
+  };
+}
+
+let accountsEditor = getDefaultAccountsEditor();
+
+function parseConfAccountsEnv(text) {
+  const cfg = {};
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.substring(0, eqIdx).trim();
+    const val = trimmed.substring(eqIdx + 1).trim();
+    cfg[key] = val;
+  }
+
+  const accountCodes = (cfg.ACCOUNTS || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const slotIds = (cfg.SLOT_IDS || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const loginIds = {};
+  for (const key of Object.keys(cfg)) {
+    if (key.startsWith('LOGINID_')) {
+      loginIds[key.substring('LOGINID_'.length)] = cfg[key];
+    }
+  }
+
+  const editor = {
+    accountPrefix: cfg.ACCOUNT_PREFIX || '25300901',
+    passwordMd5: cfg.PASSWORD_MD5 || PASSWORD_MD5,
+    baseUrl: (cfg.BASE_URL || BASE_URL).replace(/\/$/, ''),
+    bathroomId: cfg.BATHROOM_ID || DEFAULT_ROOM_ID,
+    slotIds: slotIds.length ? slotIds : [...FALLBACK_SWAP_SLOT_IDS],
+    accounts: accountCodes.map((code) => ({ code, loginid: loginIds[code] || '' })),
+  };
+
+  return { slotIds, editor };
+}
+
+async function fetchAndApplyAccountsConf() {
+  if (window.location.protocol === 'file:') {
+    throw new Error('file 协议无法读取 conf，请用 HTTP 打开页面。');
+  }
+
+  const resp = await fetch(ACCOUNTS_CONF_URL);
+  if (!resp.ok) {
+    throw new Error(`交换配置读取失败（HTTP ${resp.status}）`);
+  }
+
+  const text = await resp.text();
+  const { slotIds, editor } = parseConfAccountsEnv(text);
+
+  if (slotIds.length === 0) {
+    throw new Error('交换配置无有效时段');
+  }
+
+  accountsEditor = editor;
+  refreshAccEditorRows();
+  await ensureAllEditorLoginIds({ silent: true });
+
+  const swapAccounts = accountsEditor.accounts
+    .filter((a) => a.code.trim() && a.loginid.trim())
+    .map((a) => ({ code: a.code.trim(), loginid: a.loginid.trim() }));
+
+  if (swapAccounts.length === 0) {
+    throw new Error('交换配置无有效账号（请检查学号与密码能否登录）');
+  }
+
+  applySwapConfig(swapAccounts, slotIds);
+  refreshAccEditorRows();
+}
+
 function applySwapConfig(accounts, slotIds) {
   SWAP_ACCOUNTS = accounts.map((account) => ({ code: account.code, loginid: account.loginid }));
   SWAP_SLOT_MAP = {};
@@ -32,56 +117,276 @@ async function loadAccountsConf() {
   try {
     if (window.location.protocol === 'file:') {
       applySwapConfig(FALLBACK_SWAP_ACCOUNTS, FALLBACK_SWAP_SLOT_IDS);
+      refreshAccEditorRows();
       return;
     }
 
-    const resp = await fetch(ACCOUNTS_CONF_URL);
-    if (!resp.ok) {
-      throw new Error(`交换配置读取失败（HTTP ${resp.status}）`);
-    }
-    const text = await resp.text();
-    const lines = text.split('\n');
-    const loginIds = {};
-    let accountCodes = [];
-    let slotIds = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      const key = trimmed.substring(0, eqIdx).trim();
-      const val = trimmed.substring(eqIdx + 1).trim();
-      if (key === 'ACCOUNTS') {
-        accountCodes = val.split(',').map((item) => item.trim()).filter(Boolean);
-      }
-      if (key === 'SLOT_IDS') {
-        slotIds = val.split(',').map((item) => item.trim()).filter(Boolean);
-      }
-      if (key.startsWith('LOGINID_')) {
-        const code = key.substring('LOGINID_'.length);
-        loginIds[code] = val;
-      }
-    }
-
-    SWAP_ACCOUNTS = accountCodes
-      .filter((code) => loginIds[code])
-      .map((code) => ({ code, loginid: loginIds[code] }));
-
-    if (SWAP_ACCOUNTS.length === 0) {
-      throw new Error('交换配置无有效账号');
-    }
-
-    if (slotIds.length === 0) {
-      throw new Error('交换配置无有效时段');
-    }
-
-    applySwapConfig(SWAP_ACCOUNTS, slotIds);
+    await fetchAndApplyAccountsConf();
   } catch (e) {
     SWAP_ACCOUNTS = [];
     SWAP_SLOT_MAP = {};
     swapConfigError = e instanceof Error ? e.message : '交换配置读取失败';
     throw e;
+  }
+}
+
+function refreshAccEditorRows() {
+  const tbody = document.getElementById('acc-rows');
+  if (!tbody) {
+    return;
+  }
+
+  tbody.innerHTML = '';
+  const rows = accountsEditor.accounts.length ? accountsEditor.accounts : [{ code: '', loginid: '' }];
+
+  rows.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    const tdCode = document.createElement('td');
+    const inpCode = document.createElement('input');
+    inpCode.type = 'text';
+    inpCode.className = 'acc-code';
+    inpCode.value = row.code;
+    inpCode.autocomplete = 'off';
+    tdCode.appendChild(inpCode);
+
+    const tdLogin = document.createElement('td');
+    const spanLogin = document.createElement('span');
+    spanLogin.className = 'acc-loginid-ro';
+    spanLogin.textContent = row.loginid.trim() || '—';
+    tdLogin.appendChild(spanLogin);
+
+    const tdAct = document.createElement('td');
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'secondary acc-remove';
+    rm.dataset.accI = String(index);
+    rm.textContent = '删';
+    tdAct.appendChild(rm);
+
+    tr.appendChild(tdCode);
+    tr.appendChild(tdLogin);
+    tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+}
+
+function readAccEditorCodesFromDom() {
+  const tbody = document.getElementById('acc-rows');
+  if (!tbody) {
+    return;
+  }
+
+  const trs = [...tbody.querySelectorAll('tr')];
+  while (accountsEditor.accounts.length < trs.length) {
+    accountsEditor.accounts.push({ code: '', loginid: '' });
+  }
+  while (accountsEditor.accounts.length > trs.length) {
+    accountsEditor.accounts.pop();
+  }
+
+  trs.forEach((tr, i) => {
+    const code = tr.querySelector('.acc-code')?.value.trim() || '';
+    if (accountsEditor.accounts[i].code !== code) {
+      accountsEditor.accounts[i].code = code;
+      accountsEditor.accounts[i].loginid = '';
+    } else {
+      accountsEditor.accounts[i].code = code;
+    }
+  });
+}
+
+function buildAccountsEnvText() {
+  const e = accountsEditor;
+  const codes = (e.accounts || []).map((a) => a.code.trim()).filter(Boolean);
+  const lines = [
+    '# Generated from 浴室入口',
+    `ACCOUNT_PREFIX=${e.accountPrefix || '25300901'}`,
+    `PASSWORD_MD5=${e.passwordMd5}`,
+    `BASE_URL=${e.baseUrl}`,
+    `BATHROOM_ID=${e.bathroomId}`,
+    `SLOT_IDS=${(e.slotIds || []).join(',')}`,
+    `ACCOUNTS=${codes.join(',')}`,
+  ];
+
+  for (const a of e.accounts || []) {
+    if (a.code.trim() && a.loginid.trim()) {
+      lines.push(`LOGINID_${a.code.trim()}=${a.loginid.trim()}`);
+    }
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+async function buildAccountsEnvFromEditorAsync() {
+  readAccEditorCodesFromDom();
+  await ensureAllEditorLoginIds({ silent: true });
+  return buildAccountsEnvText();
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function getAccountsConfMergeUrl() {
+  const el = document.querySelector('meta[name="shower-conf-merge-url"]');
+  const raw = el && el.getAttribute('content');
+  return raw ? String(raw).trim() : '';
+}
+
+function initAccountsEditorUi() {
+  const tbody = document.getElementById('acc-rows');
+  const btnAdd = document.getElementById('acc-add');
+  const btnLoad = document.getElementById('acc-load-conf');
+  const btnApply = document.getElementById('acc-apply');
+  const btnDl = document.getElementById('acc-download');
+  const btnSync = document.getElementById('acc-sync-server');
+
+  if (!tbody || !btnAdd || !btnLoad || !btnApply || !btnDl) {
+    return;
+  }
+
+  const mergeUrl = getAccountsConfMergeUrl();
+  if (btnSync) {
+    btnSync.style.display = mergeUrl ? '' : 'none';
+  }
+
+  let accLoginDebounce = 0;
+
+  btnAdd.addEventListener('click', () => {
+    readAccEditorCodesFromDom();
+    accountsEditor.accounts.push({ code: '', loginid: '' });
+    refreshAccEditorRows();
+  });
+
+  tbody.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.acc-remove');
+    if (!btn) {
+      return;
+    }
+    readAccEditorCodesFromDom();
+    const i = Number(btn.dataset.accI);
+    if (!Number.isNaN(i) && i >= 0 && i < accountsEditor.accounts.length) {
+      accountsEditor.accounts.splice(i, 1);
+    }
+    if (accountsEditor.accounts.length === 0) {
+      accountsEditor.accounts.push({ code: '', loginid: '' });
+    }
+    refreshAccEditorRows();
+  });
+
+  tbody.addEventListener('input', (ev) => {
+    if (!ev.target.classList.contains('acc-code')) {
+      return;
+    }
+    window.clearTimeout(accLoginDebounce);
+    accLoginDebounce = window.setTimeout(() => {
+      void ensureAllEditorLoginIds({ silent: true });
+    }, 450);
+  });
+
+  btnLoad.addEventListener('click', async () => {
+    try {
+      await fetchAndApplyAccountsConf();
+      setRoomsStatus('已同步服务器上的 conf，并自动拉取 loginid。', 'success');
+    } catch (err) {
+      setRoomsStatus(err instanceof Error ? err.message : '读取失败', 'error');
+    }
+  });
+
+  btnApply.addEventListener('click', async () => {
+    try {
+      readAccEditorCodesFromDom();
+      await ensureAllEditorLoginIds({ silent: true });
+    } catch {
+      return;
+    }
+    const withLogin = accountsEditor.accounts.filter((a) => a.code.trim() && a.loginid.trim());
+    if (withLogin.length === 0) {
+      setRoomsStatus('至少填写一个可登录的账号。', 'error');
+      return;
+    }
+    const slotIds = accountsEditor.slotIds && accountsEditor.slotIds.length
+      ? accountsEditor.slotIds
+      : [...FALLBACK_SWAP_SLOT_IDS];
+    applySwapConfig(
+      withLogin.map((a) => ({ code: a.code.trim(), loginid: a.loginid.trim() })),
+      slotIds,
+    );
+    renderSlots();
+    refreshAccEditorRows();
+    setRoomsStatus('已用当前表格更新本页交换逻辑（未改服务器文件）。', 'success');
+  });
+
+  btnDl.addEventListener('click', async () => {
+    readAccEditorCodesFromDom();
+    const codes = accountsEditor.accounts.map((a) => a.code.trim()).filter(Boolean);
+    if (codes.length === 0) {
+      setRoomsStatus('请至少填写一个账号后再导出。', 'error');
+      return;
+    }
+    try {
+      const text = await buildAccountsEnvFromEditorAsync();
+      downloadTextFile('accounts.env', text);
+      refreshAccEditorRows();
+      setRoomsStatus('已下载 accounts.env。', 'success');
+    } catch (err) {
+      setRoomsStatus(err instanceof Error ? err.message : '导出失败', 'error');
+    }
+  });
+
+  if (btnSync && mergeUrl) {
+    btnSync.addEventListener('click', async () => {
+      try {
+        readAccEditorCodesFromDom();
+        await ensureAllEditorLoginIds({ silent: true });
+      } catch {
+        return;
+      }
+      const withLogin = accountsEditor.accounts.filter((a) => a.code.trim() && a.loginid.trim());
+      if (withLogin.length === 0) {
+        setRoomsStatus('至少填写一个可登录的账号。', 'error');
+        return;
+      }
+      try {
+        const resp = await fetch(mergeUrl, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            accounts: withLogin.map((a) => ({
+              code: a.code.trim(),
+              loginid: a.loginid.trim(),
+            })),
+          }),
+        });
+        const errText = await resp.text();
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status} ${errText.slice(0, 200)}`);
+        }
+        if (window.location.protocol !== 'file:') {
+          try {
+            await fetchAndApplyAccountsConf();
+            setRoomsStatus('已写入服务器 conf，并已重新载入。', 'success');
+          } catch (e2) {
+            setRoomsStatus(
+              `已写入服务器，但重新载入失败：${e2 instanceof Error ? e2.message : ''}`,
+              'error',
+            );
+          }
+        } else {
+          setRoomsStatus('已请求服务器合并 conf。', 'success');
+        }
+      } catch (err) {
+        setRoomsStatus(err instanceof Error ? err.message : '同步失败', 'error');
+      }
+    });
   }
 }
 
@@ -238,6 +543,25 @@ function resolveLoginCode(rawValue) {
   }
 
   if (value === LOGIN_CODE_PREFIX_EXCEPTION) {
+    return value;
+  }
+
+  return `${LOGIN_CODE_PREFIX}${value}`;
+}
+
+/** 账号表用：完整学号（≥10 位数字）原样；例外学号；否则按前缀拼接短输入 */
+function resolveAccountCodeForLogin(raw) {
+  const value = String(raw || '').trim();
+
+  if (!value) {
+    return '';
+  }
+
+  if (value === LOGIN_CODE_PREFIX_EXCEPTION) {
+    return value;
+  }
+
+  if (/^\d{10,}$/.test(value)) {
     return value;
   }
 
@@ -864,11 +1188,53 @@ async function loginAsAccount(code) {
     auth: false,
   });
 
-  if (!json || json.code !== 200 || !json.data || !json.data.token) {
+  if (!json || json.code !== 200 || !json.data || !json.data.token || !json.data.loginid) {
     throw new Error(`登录 ${code} 失败：${json && json.message ? json.message : '未知错误'}`);
   }
 
   return { code, loginid: String(json.data.loginid), token: json.data.token };
+}
+
+async function ensureAllEditorLoginIds(options) {
+  const silent = options && options.silent;
+  readAccEditorCodesFromDom();
+  const targets = accountsEditor.accounts
+    .map((a, index) => ({ ...a, index }))
+    .filter((a) => a.code.trim() && !a.loginid.trim());
+
+  if (targets.length === 0) {
+    return;
+  }
+
+  if (!PASSWORD_MD5) {
+    if (!silent) {
+      setRoomsStatus('无法登录拉取 loginid（缺少 PASSWORD_MD5）。', 'error');
+    }
+    throw new Error('缺少 PASSWORD_MD5');
+  }
+
+  for (const row of targets) {
+    const fullCode = resolveAccountCodeForLogin(row.code);
+    if (!fullCode) {
+      continue;
+    }
+    try {
+      const sess = await loginAsAccount(fullCode);
+      accountsEditor.accounts[row.index].loginid = sess.loginid;
+    } catch (err) {
+      setRoomsStatus(
+        `loginid 拉取失败（${row.code}→${fullCode}）：${err instanceof Error ? err.message : '未知错误'}`,
+        'error',
+      );
+      refreshAccEditorRows();
+      throw err;
+    }
+  }
+
+  refreshAccEditorRows();
+  if (!silent) {
+    setRoomsStatus('已自动补全 loginid。', 'success');
+  }
 }
 
 async function cancelOrderAs(session, orderId) {
@@ -1127,12 +1493,14 @@ slotListEl.addEventListener('click', async (event) => {
 restoreLastCode();
 renderRooms();
 renderSlots();
+initAccountsEditorUi();
 
 loadAccountsConf()
   .catch(() => {
     setRoomsStatus(swapConfigError || '交换配置读取失败。', 'error');
   })
   .finally(() => {
+    refreshAccEditorRows();
     const initialSession = readSession();
 
     if (initialSession) {

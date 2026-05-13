@@ -19,6 +19,7 @@
 ## Editing Guidance
 - Keep the app runnable as a plain HTML file; avoid introducing framework, bundler, or server assumptions unless the user explicitly asks for a stack change.
 - When backend request details change, update both `index.html` and `api-notes.md` together so the live page and local API notes stay aligned.
+- Optional: **merge `conf/accounts.env` from the browser** without uploading the whole file: run `scripts/save_accounts_conf_server.py` behind Nginx with `proxy_set_header X-Shower-Internal 1` and `auth_basic` (see `api-notes.md` §8). Set `<meta name="shower-conf-merge-url" content="/api/merge-accounts-env">` when deploying.
 
 ## Verification
 - There is no automated verification in this repo. Validation is manual by opening `index.html` in a browser and exercising the real API flow.

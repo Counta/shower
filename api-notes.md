@@ -63,6 +63,8 @@ Content-Type: application/json
 }
 ```
 
+- `data.loginid` 为数字用户 ID，与 `data.token` 一起用于后续请求头；定时脚本 `conf/accounts.env` 里的 `LOGINID_<学号>` 与此值一致，也可由前端调用本登录接口后读取并写入配置。
+
 **失败响应示例**
 
 ```json
@@ -393,6 +395,78 @@ loginid: <用户ID>
   }
 }
 ```
+
+## 8. 本机写入 `conf/accounts.env`（自建，非浴室后端）
+
+静态网页里的 JavaScript **不能**直接写服务器磁盘（即使页面与 `conf` 在同一台机器上；JS 在用户浏览器里执行）。
+
+仓库提供 **`scripts/save_accounts_conf_server.py`**，监听本机回环端口，由 **Nginx 反代** 暴露给浏览器。推荐 **合并写入**：浏览器只提交 **账号 JSON**，服务端读取现有 `accounts.env`、更新 `ACCOUNTS` 与 `LOGINID_*` 后写回，**不必上传整份 conf**，也**不必**把 Bearer 密钥写进网页。
+
+### 8.1 合并写入（推荐）
+
+**Method**
+
+```text
+POST /merge-accounts-env
+POST /api/merge-accounts-env
+```
+
+**Headers**
+
+```text
+Content-Type: application/json; charset=utf-8
+X-Shower-Internal: 1
+```
+
+- **`X-Shower-Internal`** 必须由 **Nginx** 使用 `proxy_set_header X-Shower-Internal 1;` 注入（覆盖客户端传入值）。后端仅监听 `127.0.0.1` 时，公网无法绕过 Nginx 直连。
+- 浏览器 **不要**带 `Authorization` Bearer；身份校验放在 **Nginx**（如 `auth_basic`、IP 白名单等）。
+
+**Body（JSON）**
+
+```json
+{
+  "accounts": [
+    { "code": "2530090187", "loginid": "59263" }
+  ]
+}
+```
+
+- `accounts`：至少 1 条、最多 32 条；`code` 为 10～15 位数字学号；`loginid` 为数字（可省略，省略则删除对应 `LOGINID_` 行）。
+- 服务端会保留文件中已有的 `PASSWORD_MD5`、`BASE_URL`、`SLOT_IDS` 等键；**要求文件已存在**且至少含 `PASSWORD_MD5`、`BASE_URL`（首次部署请先在服务器创建一份 `accounts.env`）。
+
+**成功**
+
+- HTTP 200，正文 `merged`
+
+**环境变量**
+
+| 变量 | 说明 |
+|------|------|
+| `SHOWER_ACCOUNTS_ENV_PATH` | 必填，绝对路径 |
+| `SHOWER_BIND` | 可选，默认 `127.0.0.1:8765` |
+| `SHOWER_REQUIRE_INTERNAL_HEADER` | 可选，默认 `1`；设为 `0` 仅本地调试（不安全） |
+| `SHOWER_CONF_SAVE_CORS_ORIGIN` | 可选，跨域时用 |
+
+**前端**
+
+- `index.html`：`<meta name="shower-conf-merge-url" content="/api/merge-accounts-env">`（与 Nginx 路径一致）。留空则隐藏「同步到服务器」按钮。
+- 请求使用 `credentials: 'include'`，以便浏览器携带 **Nginx Basic** 等 Cookie/认证（若已配置）。
+
+### 8.2 整文件覆盖（可选）
+
+若设置 **`SHOWER_CONF_WRITE_TOKEN`**，则同时启用：
+
+```text
+POST /save
+POST /api/save-accounts-env
+```
+
+- `Authorization: Bearer <token>`
+- `Content-Type: text/plain; charset=utf-8`，正文为完整 `accounts.env`
+
+供脚本或应急使用；日常不必开启。
+
+**示例**：`scripts/nginx-save-conf-snippet.conf`、`scripts/save-accounts-conf.service.example`
 
 ## 附：Token 观察结果
 

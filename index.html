@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
+  <!-- 部署时填写合并写入接口（与 Nginx 一致），留空则隐藏「同步到服务器」 -->
+  <meta name="shower-conf-merge-url" content="">
   <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
 </head>
 
@@ -75,6 +77,35 @@
         </header>
 
         <div id="mobile-tabs" class="mobile-tabs"></div>
+
+        <details class="surface accounts-editor" id="accounts-editor">
+          <summary class="accounts-editor-summary">定时抢预约 · 账号</summary>
+          <p class="section-note accounts-editor-help">
+            <strong>同步 conf</strong>：从服务器读取 <code>conf/accounts.env</code>，更新表格，并用其中的学号与时段驱动本页的「交换」逻辑。<br>
+            <strong>仅用表格</strong>：不请求服务器上的 conf 文件，只用当前表格里的学号（自动调用登录接口写入 loginid）更新「交换」逻辑，适合临时换号；不会改服务器文件。<br>
+            loginid 始终由登录接口自动获取，无需手填。<br>
+            <strong>同步到服务器</strong>：在 <code>meta name="shower-conf-merge-url"</code> 中配置接口（如 <code>/api/merge-accounts-env</code>）；服务端运行 <code>scripts/save_accounts_conf_server.py</code>，由 Nginx 注入 <code>X-Shower-Internal</code> 并做访问控制（见 <code>api-notes.md</code> §8）。浏览器只提交账号 JSON，不写整份 conf。
+          </p>
+          <div class="accounts-editor-actions">
+            <button type="button" class="secondary" id="acc-load-conf">同步 conf</button>
+            <button type="button" class="secondary" id="acc-apply">仅用表格</button>
+            <button type="button" class="primary" id="acc-download">下载 accounts.env</button>
+            <button type="button" class="secondary" id="acc-sync-server" style="display: none">同步到服务器</button>
+          </div>
+          <div class="accounts-editor-table-wrap">
+            <table class="accounts-editor-table">
+              <thead>
+                <tr>
+                  <th>账号</th>
+                  <th>loginid（自动）</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="acc-rows"></tbody>
+            </table>
+          </div>
+          <button type="button" class="secondary" id="acc-add">添加账号</button>
+        </details>
 
         <div id="rooms-grid" class="rooms-grid">
           <section class="surface rooms-surface">
