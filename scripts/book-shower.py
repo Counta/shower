@@ -121,8 +121,8 @@ def authed_post_retry(code, url, password_md5, base_url, cache, cfg):
 
 
 def collect_slots(cfg):
-    slot_ids = cfg["SLOT_IDS"].split(",")
-    return [{"id": int(sid.strip()), "period": "", "remain": 0} for sid in slot_ids]
+    slot_ids = [sid.strip() for sid in cfg["SLOT_IDS"].split(",") if sid.strip()]
+    return [{"id": int(sid), "period": "", "remain": 0} for sid in slot_ids]
 
 
 def book_slot(code, slot, cfg, password_md5, base_url, cache):
@@ -155,18 +155,29 @@ def main():
     cfg = load_conf()
     password_md5 = cfg["PASSWORD_MD5"]
     base_url = cfg["BASE_URL"]
-    accounts = cfg["ACCOUNTS"].split(",")
+    accounts = [code.strip() for code in cfg["ACCOUNTS"].split(",") if code.strip()]
+
+    if not accounts:
+        log("no accounts in ACCOUNTS")
+        sys.exit(1)
 
     cache = load_token_cache()
     slots = collect_slots(cfg)
 
-    log(f"booking {len(slots)} slot IDs {cfg['SLOT_IDS']} for bathroom {cfg['BATHROOM_ID']}")
+    if not slots:
+        log("no slot IDs in SLOT_IDS")
+        sys.exit(1)
 
-    account_count = len(accounts)
-    for i, slot in enumerate(slots):
-        code = accounts[i % account_count]
-        log(f"assigning: account={code} slot_id={slot['id']}")
-        book_slot(code, slot, cfg, password_md5, base_url, cache)
+    log(
+        f"booking {len(accounts)} account(s) x {len(slots)} slot(s) "
+        f"({len(accounts) * len(slots)} attempts) bathroom {cfg['BATHROOM_ID']}; "
+        f"slots={cfg['SLOT_IDS']}"
+    )
+
+    for code in accounts:
+        for slot in slots:
+            log(f"assigning: account={code} slot_id={slot['id']}")
+            book_slot(code, slot, cfg, password_md5, base_url, cache)
 
 
 if __name__ == "__main__":
